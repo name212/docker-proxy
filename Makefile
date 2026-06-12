@@ -1,0 +1,1 @@
+include makefile-go/makefile.inc/versions.mk makefile-go/makefile.inc/bin.mk makefile-go/makefile.inc/duration.mk makefile-go/makefile.inc/golang.mk 
