@@ -1,0 +1,3 @@
+[submodule "makefile-go"]
+	path = makefile-go
+	url = git@github.com:name212/makefile-go.git
