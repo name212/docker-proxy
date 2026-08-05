@@ -33,5 +33,7 @@ go.work.sum
 
 # makefile-go
 bin/
-tmp/
-*.json.test.result
+.build/
+.release/
+tmp-go-tests/
+*.tst.res
