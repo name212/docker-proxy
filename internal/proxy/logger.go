@@ -34,7 +34,7 @@ func (l *Logger) SetServerCtx(serverCtx context.Context) {
 }
 
 func (l *Logger) Request(r *http.Request, lFunc loggerFuncCtx, msg string, args ...any) {
-	lFunc(l.serverCtx, msg, l.getLogArgs(r, args))
+	lFunc(l.serverCtx, msg, l.getLogArgs(r, args)...)
 }
 
 func (l *Logger) Response(r *http.Response, lFunc loggerFuncCtx, msg string, args ...any) {
@@ -43,7 +43,7 @@ func (l *Logger) Response(r *http.Response, lFunc loggerFuncCtx, msg string, arg
 		slog.String("status", r.Status),
 		slog.Int("status_code", r.StatusCode),
 	)
-	lFunc(l.serverCtx, msg, l.getLogArgs(r.Request, all))
+	lFunc(l.serverCtx, msg, l.getLogArgs(r.Request, all)...)
 }
 
 func (l *Logger) StringArg(k, v string) any {
@@ -71,6 +71,7 @@ func (l *Logger) getLogArgs(r *http.Request, args []any) []any {
 	res := []any{
 		slog.String("method", r.Method),
 		slog.String("path", r.URL.Path),
+		slog.String("full_url", r.URL.String()),
 		slog.String("via", l.server),
 		slog.String(RequestIDKey, getRequestID(r.Context())),
 	}

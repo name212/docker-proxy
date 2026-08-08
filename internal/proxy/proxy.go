@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/name212/govalue"
 )
 
@@ -25,6 +25,8 @@ type Proxy struct {
 	stopped     atomic.Bool
 	started     atomic.Bool
 
+	postCloseListener func(logger *Logger)
+
 	logger *Logger
 
 	client *DockerHTTPClient
@@ -36,7 +38,9 @@ func NewProxy(cfg *Config) (*Proxy, error) {
 	}
 
 	p := &Proxy{
-		cfg: cfg,
+		cfg:               cfg,
+		logger:            newLogger(cfg.DockerServer),
+		postCloseListener: func(logger *Logger) {},
 	}
 
 	switch {
@@ -44,21 +48,29 @@ func NewProxy(cfg *Config) (*Proxy, error) {
 		var err error
 		p.listener, err = net.Listen("unix", cfg.UnixSocketPath)
 		if err != nil {
-			return nil, fmt.Errorf("cannot start listener with unix-socket '%s'", cfg.UnixSocketPath)
+			return nil, fmt.Errorf("cannot start listener with unix-socket '%s': %w", cfg.UnixSocketPath, err)
 		}
 		p.startedAddr = cfg.UnixSocketPath
+		p.postCloseListener = func(logger *Logger) {
+			if err := os.Remove(cfg.UnixSocketPath); err != nil {
+				if !errors.Is(err, os.ErrNotExist) {
+					logger.Error(
+						fmt.Sprintf("Cannot remove socket file '%s'", cfg.UnixSocketPath),
+						err,
+					)
+				}
+			}
+		}
 	case cfg.BindAddress != "":
 		var err error
 		p.listener, err = net.Listen("tcp", cfg.BindAddress)
 		if err != nil {
-			return nil, fmt.Errorf("cannot start listener with bind address '%s'", cfg.BindAddress)
+			return nil, fmt.Errorf("cannot start listener with bind address '%s': %w", cfg.BindAddress, err)
 		}
 		p.startedAddr = cfg.BindAddress
 	default:
 		return nil, fmt.Errorf("cannot start proxy. unknown to bind")
 	}
-
-	p.logger = newLogger(p.startedAddr)
 
 	client, err := NewDockerHTTPClient(cfg.DockerServer, p.logger)
 	if err != nil {
@@ -160,40 +172,20 @@ func (p *Proxy) shutdown(f string, args ...any) error {
 
 	if !govalue.IsNil(p.listener) {
 		if err := p.listener.Close(); err != nil {
-			p.logger.Error("Cannot close listener", err)
-			stopped = false
+			if !errors.Is(err, net.ErrClosed) {
+				p.logger.Error("Cannot close listener", err)
+				stopped = false
+			}
 		}
 	}
 
 	if stopped {
+		if p.postCloseListener != nil {
+			p.postCloseListener(p.logger)
+		}
 		p.logger.Info("Proxy and listener stopped fully")
 	}
 
 	return err
 }
 
-func (p *Proxy) initRoutes(ctx context.Context) error {
-	p.router.Group(func(r chi.Router) {
-		r.Use(
-			requestIDMiddleware,
-			middleware.Timeout(10*time.Second),
-		)
-
-		r.Get("/_healthz", func(w http.ResponseWriter, r *http.Request) {
-			p.handleHealthz(ctx, w, r)
-		})
-
-		r.Get("/_readyz", func(w http.ResponseWriter, r *http.Request) {
-			p.handleReadyz(ctx, w, r)
-		})
-	})
-
-	p.router.Use(
-		requestIDMiddleware,
-		p.getAuthMiddleware(),
-	)
-
-	p.router.Handle("/", NewProxyHandler(ctx, p))
-
-	return nil
-}

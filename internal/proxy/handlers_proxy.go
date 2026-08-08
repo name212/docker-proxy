@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-var cannotSendRequestErr = []byte("Cannot send request or read response to/from docker")
+var cannotSendRequestErrMsg = "Cannot send request or read response to/from docker"
 
 type ProxyHandler struct {
 	serverCtx context.Context
@@ -21,6 +21,7 @@ func NewProxyHandler(serverCtx context.Context, p *Proxy) *ProxyHandler {
 
 func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if err := h.p.client.Send(r.Context(), w, r); err != nil {
-		writeInternalServerErrorResponse(cannotSendRequestErr, w, r, h.p.logger)
+		h.p.logger.Error(cannotSendRequestErrMsg, err, r)
+		writeInternalServerErrorResponse(cannotSendRequestErrMsg, w, r, h.p.logger)
 	}
 }

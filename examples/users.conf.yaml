@@ -1,0 +1,16 @@
+users:
+   ## user name or description
+   ## should be unique for all users in list 
+- name: Admin
+  ## Token for auth
+  ## should be unique for all users in list
+  ## Should be minimum 16 symbols
+  ## When we use docker cli you should pass this
+  ## token in header X-Auth-Token via DOCKER_CUSTOM_HEADERS env like:
+  ##  export DOCKER_CUSTOM_HEADERS="X-Auth-Token=EXAMPLE-T0Ken-1111"
+  ##  export DOCKER_HOST="path-to-docker-proxy-unix-socket-or-docker-proxy-address"
+  ##  docker image ls 
+  token: EXAMPLE-T0Ken-1111
+  ## roles for user. Can be:
+  ##   admin - full access
+  roles: ["admin"]

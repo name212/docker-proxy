@@ -2,8 +2,8 @@ package proxy
 
 import (
 	"context"
+	"net/http"
 
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/name212/govalue"
 
 	"github.com/name212/docker-proxy/internal/utils/rand"
@@ -24,4 +24,11 @@ func getRequestID(ctx context.Context) string {
 	return res
 }
 
-var requestIDMiddleware = middleware.WithValue(RequestIDKey, rand.String(16))
+func (p *Proxy) getAddRequestIDMiddleware() func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctxWithRequestID := context.WithValue(r.Context(), RequestIDKey, rand.String(16))
+			next.ServeHTTP(w, r.WithContext(ctxWithRequestID))
+		})
+	}
+}

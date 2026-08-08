@@ -31,8 +31,10 @@ var loggerWasInit = false
 func setLogger(c *loggerConfig) error {
 	c.applyDefaults()
 
+	levelStr := fmt.Sprintf(`"%s"`, c.level)
+
 	var l slog.Level
-	if err := l.UnmarshalJSON([]byte(c.level)); err != nil {
+	if err := l.UnmarshalJSON([]byte(levelStr)); err != nil {
 		return fmt.Errorf("cannot parse log level '%s': %w", c.level, err)
 	}
 

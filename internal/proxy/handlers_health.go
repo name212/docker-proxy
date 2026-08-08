@@ -11,16 +11,16 @@ const dockerPingPath = "/v1.55/_ping"
 
 var (
 	okMsg                = []byte("OK")
-	internalServerErrMsg = []byte("Internal server error")
+	internalServerErrMsg = "Internal server error"
 
 	dockerPingMethod = http.MethodHead
 )
 
-func (p *Proxy) handleHealthz(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (p *Proxy) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	writeOKResponse(w, r, p.logger)
 }
 
-func (p *Proxy) handleReadyz(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+func (p *Proxy) handleReadyz(w http.ResponseWriter, r *http.Request) {
 	pingContext, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 	defer cancel()
 
@@ -38,17 +38,19 @@ func (p *Proxy) handleReadyz(ctx context.Context, w http.ResponseWriter, r *http
 
 	if err := p.client.SendAndGetOnlyStatus(pingContext, pingRequest); err != nil {
 		errMsg := fmt.Sprintf("docker ping failed: %s", err.Error())
-		writeInternalServerErrorResponse([]byte(errMsg), w, r, p.logger)
+		writeInternalServerErrorResponse(errMsg, w, r, p.logger)
 		return
 	}
 
 	writeOKResponse(w, r, p.logger)
 }
 
-func writeInternalServerErrorResponse(responseMsg []byte, w http.ResponseWriter, r *http.Request, logger *Logger) {
+func writeInternalServerErrorResponse(responseMsg string, w http.ResponseWriter, r *http.Request, logger *Logger) {
+	logger.Error(responseMsg, fmt.Errorf("%s", responseMsg), r)
+
 	w.WriteHeader(http.StatusInternalServerError)
 
-	if _, err := w.Write(responseMsg); err != nil {
+	if _, err := w.Write([]byte(responseMsg)); err != nil {
 		logger.Error("Cannot write internal error response", err, r)
 	}
 }

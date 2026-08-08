@@ -15,15 +15,18 @@ import (
 )
 
 type (
-	closeFunc func()
+	closeFunc         func(*http.Response, *http.Request)
+	urlPreparatorFunc func(*url.URL) *url.URL
 )
 
 type DockerHTTPClient struct {
 	transport   http.RoundTripper
 	clientsPool *pool.Pool[*http.Client]
 
-	dockerServer string
-	logger       *Logger
+	dockerServer  string
+	urlPreparator urlPreparatorFunc
+
+	logger *Logger
 }
 
 func NewDockerHTTPClient(dockerServer string, logger *Logger) (*DockerHTTPClient, error) {
@@ -35,6 +38,8 @@ func NewDockerHTTPClient(dockerServer string, logger *Logger) (*DockerHTTPClient
 	resultTransport := defaultTransport.Clone()
 	defaultDialContext := defaultTransport.DialContext
 
+	var urlPreparator urlPreparatorFunc
+
 	host, port, err := net.SplitHostPort(dockerServer)
 	if govalue.IsNil(err) {
 		logger.Info(
@@ -42,6 +47,13 @@ func NewDockerHTTPClient(dockerServer string, logger *Logger) (*DockerHTTPClient
 			logger.StringArg("host", host),
 			logger.StringArg("port", port),
 		)
+
+		urlPreparator = func(u *url.URL) *url.URL {
+			cpy := copyURL(u)
+			cpy.Scheme = "http"
+			cpy.Host = net.JoinHostPort(host, port)
+			return cpy
+		}
 
 		resultTransport.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
 			return defaultDialContext(ctx, "tcp", dockerServer)
@@ -52,6 +64,13 @@ func NewDockerHTTPClient(dockerServer string, logger *Logger) (*DockerHTTPClient
 			logger.StringArg("unix", dockerServer),
 		)
 
+		urlPreparator = func(u *url.URL) *url.URL {
+			cpy := copyURL(u)
+			cpy.Scheme = "http"
+			cpy.Host = "127.0.0.1"
+			return cpy
+		}
+
 		resultTransport.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
 			return defaultDialContext(ctx, "unix", dockerServer)
 		}
@@ -60,9 +79,10 @@ func NewDockerHTTPClient(dockerServer string, logger *Logger) (*DockerHTTPClient
 	resultTransport.Proxy = http.ProxyFromEnvironment
 
 	c := &DockerHTTPClient{
-		transport:    resultTransport,
-		logger:       logger,
-		dockerServer: dockerServer,
+		transport:     resultTransport,
+		logger:        logger,
+		dockerServer:  dockerServer,
+		urlPreparator: urlPreparator,
 	}
 
 	c.clientsPool = pool.NewPool(func() *http.Client {
@@ -76,7 +96,7 @@ func NewDockerHTTPClient(dockerServer string, logger *Logger) (*DockerHTTPClient
 
 func (c *DockerHTTPClient) SendAndGetOnlyStatus(ctx context.Context, r *http.Request) error {
 	response, cleanup, err := c.send(ctx, r)
-	defer cleanup()
+	defer cleanup(response, r)
 
 	if err != nil {
 		return err
@@ -88,12 +108,12 @@ func (c *DockerHTTPClient) SendAndGetOnlyStatus(ctx context.Context, r *http.Req
 		return nil
 	}
 
-	return c.requestErr(ctx, r, "failed with incorrect status %d: '%s'", st, response.Status)
+	return c.requestErr(r, "failed with incorrect status %d: '%s'", st, response.Status)
 }
 
 func (c *DockerHTTPClient) Send(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	response, cleanup, err := c.send(ctx, r)
-	defer cleanup()
+	defer cleanup(response, r)
 
 	if err != nil {
 		return err
@@ -114,7 +134,7 @@ func (c *DockerHTTPClient) Send(ctx context.Context, w http.ResponseWriter, r *h
 
 	n, err := io.Copy(w, response.Body)
 	if err != nil {
-		return c.requestErr(ctx, r, "failed copy response (written %d bytes): '%s'", n, err.Error())
+		return c.requestErr(r, "failed copy response (written %d bytes): '%s'", n, err.Error())
 	}
 
 	c.logger.Response(response, DebugCtx, "response written")
@@ -125,12 +145,20 @@ func (c *DockerHTTPClient) Send(ctx context.Context, w http.ResponseWriter, r *h
 func (c *DockerHTTPClient) send(ctx context.Context, r *http.Request) (*http.Response, closeFunc, error) {
 	cl := c.clientsPool.Get()
 	if govalue.IsNil(cl) {
-		return nil, noClose, c.requestErr(ctx, r, "got nil http client for pool")
+		return nil, c.noCloseResponse, c.requestErr(r, "got nil http client from pool")
 	}
 
+	oldUrl := r.URL
+	oldRequestURI := r.RequestURI
 	defer func() {
 		c.clientsPool.Put(cl)
+
+		r.URL = oldUrl
+		r.RequestURI = oldRequestURI
 	}()
+
+	r.RequestURI = ""
+	r.URL = c.urlPreparator(oldUrl)
 
 	c.logger.Request(r, DebugCtx, "send request to docker")
 
@@ -139,36 +167,56 @@ func (c *DockerHTTPClient) send(ctx context.Context, r *http.Request) (*http.Res
 	if !govalue.IsNil(err) {
 		urlErr, ok := err.(*url.Error)
 		if !ok {
-			return nil, noClose, c.requestErr(ctx, r, "unexpected error %s", err.Error())
+			return nil, c.noCloseResponse, c.requestErr(r, "unexpected error %s", err.Error())
 		}
 
 		if urlErr.Timeout() {
-			return nil, noClose, c.requestErr(ctx, r, "timeout")
+			return nil, c.noCloseResponse, c.requestErr(r, "timeout")
 		}
 
-		return nil, noClose, c.requestErr(ctx, r, "%s", err.Error())
-	}
-
-	closeFn := func() {
-		if govalue.IsNil(response.Body) {
-			return
-		}
-
-		if err := response.Body.Close(); err != nil {
-			c.logger.Error("response body is not closed", err, r)
-		}
+		return nil, c.noCloseResponse, c.requestErr(r, "%s", err.Error())
 	}
 
 	c.logger.Response(response, DebugCtx, "request successful sent")
 
-	return response, closeFn, nil
+	return response, c.closeResponseBody, nil
 }
 
-func (c *DockerHTTPClient) requestErr(ctx context.Context, r *http.Request, f string, args ...any) error {
-	id := getRequestID(ctx)
-	err := fmt.Sprintf("request [%s] %s via %s error: ", id, request.RequestStr(r), c.dockerServer)
+func (c *DockerHTTPClient) requestErr(r *http.Request, f string, args ...any) error {
+	err := fmt.Sprintf("request %s via %s error: ", request.RequestStr(r), c.dockerServer)
 	err = err + fmt.Sprintf(f, args...)
 	return fmt.Errorf("%s", err)
 }
 
-func noClose() {}
+func (c *DockerHTTPClient) noCloseResponse(*http.Response, *http.Request) {}
+
+func (c *DockerHTTPClient) closeResponseBody(response *http.Response, request *http.Request) {
+	if govalue.IsNil(response.Body) {
+		return
+	}
+
+	if err := response.Body.Close(); err != nil {
+		c.logger.Error("response body is not closed", err, request)
+	}
+}
+
+func copyURL(u *url.URL) *url.URL {
+	n, err := url.Parse(u.String())
+	if err != nil {
+		n = &url.URL{
+			Scheme:      u.Scheme,
+			Host:        u.Host,
+			User:        u.User,
+			Path:        u.Path,
+			RawPath:     u.RawPath,
+			RawQuery:    u.RawQuery,
+			Opaque:      u.Opaque,
+			Fragment:    u.Fragment,
+			RawFragment: u.RawFragment,
+			OmitHost:    u.OmitHost,
+			ForceQuery:  u.ForceQuery,
+		}
+	}
+
+	return n
+}

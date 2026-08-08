@@ -39,8 +39,7 @@ func (p *Proxy) getAuthMiddleware() func(next http.Handler) http.Handler {
 					return
 				}
 
-				errMsg := fmt.Appendf(
-					nil,
+				errMsg := fmt.Sprintf(
 					"got unexpected error while checking allow for user '%s': '%s'",
 					userName,
 					err.Error(),
@@ -49,6 +48,8 @@ func (p *Proxy) getAuthMiddleware() func(next http.Handler) http.Handler {
 				writeInternalServerErrorResponse(errMsg, w, r, p.logger)
 				return
 			}
+
+			r.Header.Del(authTokenHeader)
 
 			p.logger.Request(
 				r,

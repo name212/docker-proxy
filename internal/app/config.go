@@ -13,6 +13,8 @@ import (
 	server "github.com/name212/docker-proxy/internal/proxy"
 )
 
+const DefaultDockerUNIXSocket = "/run/docker.sock"
+
 type Config struct {
 	UnixSocketPath  string `yaml:"unixSocketPath"`
 	BindAddress     string `yaml:"bindAddress"`
@@ -23,9 +25,13 @@ type Config struct {
 	LogFormat string `yaml:"logFormat"`
 }
 
-func (c *Config) validate() error {
+func (c *Config) prepareAndValidate() error {
 	if c == nil {
 		return fmt.Errorf("nil config passed to validate")
+	}
+
+	if c.DockerAddress == "" {
+		c.DockerAddress = DefaultDockerUNIXSocket
 	}
 
 	return checkFile(c.UsersConfigPath, "users config")
@@ -41,10 +47,6 @@ func ReadAppConfig(r io.Reader) (*Config, error) {
 
 	if err := yaml.Unmarshal(content, &res); err != nil {
 		return nil, fmt.Errorf("cannot unmarshal yaml app config: %w", err)
-	}
-
-	if err := res.validate(); err != nil {
-		return nil, fmt.Errorf("cannot validate global config: %w", err)
 	}
 
 	return &res, nil
@@ -77,6 +79,10 @@ func ReadAppConfigFromFile(ctx context.Context, path string) (*Config, error) {
 }
 
 func GetProxyConfig(appConfig *Config) (*server.Config, error) {
+	if err := appConfig.prepareAndValidate(); err != nil {
+		return nil, fmt.Errorf("cannot validate app proxy config: %w", err)
+	}
+
 	usersCfgContent, err := os.ReadFile(appConfig.UsersConfigPath)
 	if err != nil {
 		return nil, fmt.Errorf("cannot read users config '%s': %w", appConfig.UsersConfigPath, err)

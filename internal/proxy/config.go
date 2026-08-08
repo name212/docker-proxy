@@ -2,7 +2,8 @@ package proxy
 
 import (
 	"fmt"
-	"strings"
+
+	"github.com/name212/docker-proxy/internal/utils/errors"
 )
 
 type UsersConfig struct {
@@ -21,20 +22,48 @@ func (u *UsersConfig) ExtractUsersMap() (UsersMap, error) {
 	res := make(UsersMap, len(u.Users))
 	var errs []string
 
+	uniqUsers := make(map[string]int)
+	uniqTokens := make(map[Token]int)
+
 	for indx, user := range u.Users {
+		if alreadyUserIndex, ok := uniqUsers[user.Name]; ok {
+			errs = append(
+				errs,
+				fmt.Sprintf(
+					"user %d with name %s already present on index %d",
+					indx,
+					user.Name,
+					alreadyUserIndex,
+				),
+			)
+		} else {
+			uniqUsers[user.Name] = indx
+		}
+
 		if err := user.Validate(); err != nil {
 			errs = append(errs, fmt.Sprintf("incorrect user %d: %s", indx, err.Error()))
 			continue
+		}
+
+		if alreadyTokenIndex, ok := uniqTokens[user.Token]; ok {
+			errs = append(
+				errs,
+				fmt.Sprintf(
+					"token for user (%d with name %s) already present for user with index %d",
+					indx,
+					user.Name,
+					alreadyTokenIndex,
+				),
+			)
+		} else {
+			uniqTokens[user.Token] = indx
 		}
 
 		res[user.Token] = user
 	}
 
 	if len(errs) > 0 {
-		return nil, fmt.Errorf(
-			"Cannot extract users map:\n%s\n",
-			strings.Join(errs, "\n"),
-		)
+		return nil, errors.Join("Cannot extract users map", errs)
 	}
 
 	return res, nil
@@ -81,10 +110,7 @@ func (c *Config) Validate() error {
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf(
-			"Server config invalid:\n%s\n",
-			strings.Join(errs, "\n"),
-		)
+		return errors.Join("Server config invalid", errs)
 	}
 
 	return nil

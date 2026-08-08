@@ -25,11 +25,6 @@ func run() error {
 	)
 	defer stop()
 
-	if err := app.IsRunAsRoot(); err != nil {
-		slog.Error("check run as root", slog.String("err", err.Error()))
-		return err
-	}
-
 	proxyConf, err := app.GetProxyConfigFromArgs(ctx)
 	if err != nil {
 		slog.Error("cannot get proxy config", slog.String("err", err.Error()))
