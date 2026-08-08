@@ -15,7 +15,6 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
 	flag.PrintDefaults()
 	fmt.Fprintf(os.Stderr, `
-
 For use docker-proxy for docker-cli you should:
   Pass env DOCKER_HOST with address to proxy (see unixSocketPath/bindAddress params)
     If you use unixSocketPath, DOCKER_HOST should contains prefix unix:// like
@@ -67,10 +66,10 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 	  - WARN
 	  - ERROR
 	logFormat: format log messages, Default json
-	   if passed via config some logs can be printed with text format level before full init
-	   Can be:
-	   - text
-	   - json
+      if passed via config some logs can be printed with text format level before full init
+      Can be:
+      - text
+      - json
 `, rolesListStr))
 
 	appConfig := &Config{}
