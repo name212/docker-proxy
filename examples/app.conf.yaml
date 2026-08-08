@@ -1,9 +1,13 @@
 ## For use proxy you should:
 ##   Pass env DOCKER_HOST with address to proxy (see unixSocketPath/bindAddress params)
+##     If you use unixSocketPath, DOCKER_HOST should contains prefix unix:// like
+##       unix:///run/docker-proxy.socket
+##     If you use bindAddress, DOCKER_HOST should contains prefix tcp:// like
+##       tcp://127.0.0.1:8081
 ##   Pass env DOCKER_CUSTOM_HEADERS with X-Auth-Token header. Header value is user token from usersConfigPath
 ## Example:
 ##   export DOCKER_CUSTOM_HEADERS="X-Auth-Token=EXAMPLE-T0Ken-1111"
-##   export DOCKER_HOST="from unixSocketPath/bindAddress params"
+##   export DOCKER_HOST="from unixSocketPath/bindAddress params with required proto prefix"
 ##   docker image ls
 
 ## if need create unix-socket for proxy

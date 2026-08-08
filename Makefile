@@ -19,18 +19,22 @@ test/run/proxy: test/clean clean/build test/build .tmp
 	fi; \
 	"$(BUILD_PATH)/$${bin_name}" -c "$(CURDIR)/.test.conf.yaml"
 
-test/run/docker: check/installed/docker install/yq ## Run docker cli cmd via proxy
-	@##~ RUN_CMD=cmd - command to run
-	@##~ PROXY_USER=NAME - name of user to run
+test/run/docker: check/installed/docker ## Run docker cli cmd via proxy
+	@##~ RUN_CMD=cmd - command to run can be passed without 'docker'
+	@##~ PROXY_USER=NAME - name of user to run if passed will find in usersConfigPath
+	@##~ PROXY_TOKEN=token - token to run
 	@##~ PROXY_ADDRESS=ADDR - if passed use passed proxy address
 	@##~                      Otherwise, get from $(CURDIR)/.test.conf.yaml:unixSocketPath or
 	@##~                      $(CURDIR)/.test.conf.yaml:bindAddress
 	@${INCLUDE_ECHO} \
+	if ! $(MAKE) install/yq 2>/dev/null; then \
+		exit_with_err "Cannot install yq"; \
+	fi; \
 	if [ -z "$$RUN_CMD" ]; then \
 		exit_with_err "RUN_CMD with command to run not passed"; \
 	fi; \
-	if [ -z "$$PROXY_USER" ]; then \
-		exit_with_err "PROXY_USER with user to run not passed"; \
+	if [ -z "$$PROXY_USER" ] && [ -z "$$PROXY_TOKEN" ]; then \
+		exit_with_err "PROXY_USER or PROXY_TOKEN  to run not passed"; \
 	fi; \
 	addr="$$PROXY_ADDRESS"; \
 	users_cfg="$(CURDIR)/.test.users.yaml"; \
@@ -40,11 +44,11 @@ test/run/docker: check/installed/docker install/yq ## Run docker cli cmd via pro
 		if [ ! -f "$$app_cfg" ]; then \
 			exit_with_err "PROXY_ADDRESS not passed and proxy config not found"; \
 		fi; \
-		if ! addr="$$($$yq_r '.unixSocketPath' "$$app_cfg")"; then \
+		if ! addr="$$($$yq_r '.unixSocketPath' "$$app_cfg" 2>/dev/null)"; then \
 			if ! addr="$$($$yq_r '.bindAddress' "$$app_cfg")"; then \
 				exit_with_err "Cannot extract proxy address from $$app_cfg"; \
 			else \
-				addr="http://$$addr"; \
+				addr="tcp://$$addr"; \
 			fi; \
 		else \
 			addr="unix://$$addr"; \
@@ -56,16 +60,18 @@ test/run/docker: check/installed/docker install/yq ## Run docker cli cmd via pro
 	if [ -z "$$addr" ]; then \
 		exit_with_err "Proxy address is empty or not extracted"; \
 	fi; \
-	if [ -z "$$users_cfg" ]; then \
-		exit_with_err "Users config path is empty or not extracted"; \
-	fi; \
-	if [ ! -f "$$users_cfg" ]; then \
-		exit_with_err "Users config file $$users_cfg not found"; \
-	fi; \
-	token_query=".users[] | select(.name == \"$$PROXY_USER\") | .token"; \
-	token=""; \
-	if ! token="$$($$yq_r "$$token_query" "$$users_cfg")"; then \
-		exit_with_err "Token not extracted for user $$PROXY_USER from $$users_cfg"; \
+	token="$$PROXY_TOKEN"; \
+	if [ -z "$$token" ]; then \
+		if [ -z "$$users_cfg" ]; then \
+			exit_with_err "Users config path is empty or not extracted"; \
+		fi; \
+		if [ ! -f "$$users_cfg" ]; then \
+			exit_with_err "Users config file $$users_cfg not found"; \
+		fi; \
+		token_query=".users[] | select(.name == \"$$PROXY_USER\") | .token"; \
+		if ! token="$$($$yq_r "$$token_query" "$$users_cfg")"; then \
+			exit_with_err "Token not extracted for user $$PROXY_USER from $$users_cfg"; \
+		fi; \
 	fi; \
 	if [ -z "$$token" ]; then \
 		exit_with_err "Token is empty for user $$PROXY_USER"; \

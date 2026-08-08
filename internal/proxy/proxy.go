@@ -43,33 +43,61 @@ func NewProxy(cfg *Config) (*Proxy, error) {
 		postCloseListener: func(logger *Logger) {},
 	}
 
-	switch {
-	case cfg.UnixSocketPath != "":
+	var startListener func() error
+
+	startUnixProxy := func() error {
+		socketPath := cfg.UnixSocketPath
+
 		var err error
-		p.listener, err = net.Listen("unix", cfg.UnixSocketPath)
-		if err != nil {
-			return nil, fmt.Errorf("cannot start listener with unix-socket '%s': %w", cfg.UnixSocketPath, err)
-		}
-		p.startedAddr = cfg.UnixSocketPath
+
 		p.postCloseListener = func(logger *Logger) {
-			if err := os.Remove(cfg.UnixSocketPath); err != nil {
-				if !errors.Is(err, os.ErrNotExist) {
-					logger.Error(
-						fmt.Sprintf("Cannot remove socket file '%s'", cfg.UnixSocketPath),
-						err,
-					)
-				}
+			err := os.Remove(socketPath)
+
+			if err == nil {
+				return
+			}
+
+			if !errors.Is(err, os.ErrNotExist) {
+				msg := fmt.Sprintf("Cannot remove socket file '%s'", socketPath)
+				logger.Error(msg, err)
 			}
 		}
-	case cfg.BindAddress != "":
+
+		p.listener, err = net.Listen("unix", socketPath)
+		if err != nil {
+			return fmt.Errorf("cannot start listener with unix-socket '%s': %w", socketPath, err)
+		}
+
+		if err := os.Chmod(socketPath, 0o777); err != nil {
+			return fmt.Errorf("cannot chmod to 777 socket file '%s': %w", socketPath, err)
+		}
+
+		p.startedAddr = socketPath
+
+		return nil
+	}
+
+	startPortProxy := func() error {
 		var err error
 		p.listener, err = net.Listen("tcp", cfg.BindAddress)
 		if err != nil {
-			return nil, fmt.Errorf("cannot start listener with bind address '%s': %w", cfg.BindAddress, err)
+			return fmt.Errorf("cannot start listener with bind address '%s': %w", cfg.BindAddress, err)
 		}
 		p.startedAddr = cfg.BindAddress
+		return nil
+	}
+
+	switch {
+	case cfg.UnixSocketPath != "":
+		startListener = startUnixProxy
+	case cfg.BindAddress != "":
+		startListener = startPortProxy
 	default:
 		return nil, fmt.Errorf("cannot start proxy. unknown to bind")
+	}
+
+	if err := startListener(); err != nil {
+		return nil, p.shutdown("cannot start listener: %s", err.Error())
 	}
 
 	client, err := NewDockerHTTPClient(cfg.DockerServer, p.logger)
@@ -188,4 +216,3 @@ func (p *Proxy) shutdown(f string, args ...any) error {
 
 	return err
 }
-

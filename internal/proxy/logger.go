@@ -73,7 +73,8 @@ func (l *Logger) getLogArgs(r *http.Request, args []any) []any {
 		slog.String("path", r.URL.Path),
 		slog.String("full_url", r.URL.String()),
 		slog.String("via", l.server),
-		slog.String(RequestIDKey, getRequestID(r.Context())),
+		slog.String(requestIDKey, getRequestID(r)),
+		slog.String(requestUserNameKey, getUserNameForRequest(r)),
 	}
 
 	return append(res, args...)

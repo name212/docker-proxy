@@ -4,14 +4,23 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/name212/docker-proxy/internal/utils/request"
 )
 
-const authTokenHeader = "X-Auth-Token"
+const (
+	authTokenHeader = "X-Auth-Token"
+	requestUserNameKey     = "user_name"
+)
 
 var (
 	emptyTokenErrMsg   = fmt.Sprintf("token header %s not passed or empty", authTokenHeader)
 	userNotFoundErrMsg = "user not found by passed token"
 )
+
+func getUserNameForRequest(r *http.Request) string {
+	return request.GetStringFromRequestCtx(r, requestUserNameKey)
+}
 
 func (p *Proxy) getAuthMiddleware() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -30,11 +39,13 @@ func (p *Proxy) getAuthMiddleware() func(next http.Handler) http.Handler {
 
 			userName := user.Name
 
+			r = request.AddStringToRequestCtx(r, requestUserNameKey, userName)
+
 			allowBy, err := IsAllow(user, r.URL, r.Method)
 
 			if err != nil {
 				if errors.Is(err, UnauthorizedErr) {
-					errMsg := fmt.Sprintf("user '%s' not authorized for request", user)
+					errMsg := fmt.Sprintf("user '%s' not authorized for request", userName)
 					writeNotAuthorizedErr(w, r, errMsg, p.logger)
 					return
 				}
@@ -55,7 +66,7 @@ func (p *Proxy) getAuthMiddleware() func(next http.Handler) http.Handler {
 				r,
 				InfoCtx,
 				"allow request for user",
-				p.logger.StringArg("user", userName),
+				// user name will get from ctx
 				p.logger.StringArg("allow_by", allowBy),
 			)
 

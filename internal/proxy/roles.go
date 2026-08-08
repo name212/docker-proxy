@@ -2,8 +2,11 @@ package proxy
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
+	"strings"
 )
 
 var (
@@ -24,26 +27,105 @@ func newAllowPath(re *regexp.Regexp, methods []*regexp.Regexp) *AllowPath {
 }
 
 type Role struct {
-	Order      int
-	AllowPaths []*AllowPath
+	Order       int
+	Description string
+	AllowPaths  []*AllowPath
 }
 
-func newRole(order int, paths []*AllowPath) *Role {
+func newRole(order int, desc string, paths []*AllowPath, inherit ...*Role) *Role {
+	var allPaths []*AllowPath
+
+	for _, i := range inherit {
+		allPaths = append(allPaths, i.AllowPaths...)
+	}
+
+	allPaths = append(allPaths, paths...)
+
 	return &Role{
-		Order:      order,
-		AllowPaths: paths,
+		Order:       order,
+		Description: desc,
+		AllowPaths:  allPaths,
 	}
 }
 
-var allowedRoles map[string]*Role = map[string]*Role{
-	"admin": newRole(0, []*AllowPath{
-		newAllowPath(
-			regexp.MustCompile(".+"),
-			[]*regexp.Regexp{
-				regexp.MustCompile(".+"),
+func createMethodsOneRegexp(methods []string) []*regexp.Regexp {
+	trimmed := make([]string, 0, len(methods))
+	for _, m := range methods {
+		trimmed = append(trimmed, strings.TrimSpace(m))
+	}
+
+	joined := strings.Join(trimmed, "|")
+	reStr := fmt.Sprintf(`(?i)^(%s)$`, joined)
+
+	return []*regexp.Regexp{
+		regexp.MustCompile(reStr),
+	}
+}
+
+var allowedRoles map[string]*Role
+
+func init() {
+	healthChecker := newRole(
+		999,
+		"access to health method as ping",
+		[]*AllowPath{
+			newAllowPath(
+				regexp.MustCompile("/_ping"),
+				createMethodsOneRegexp([]string{
+					http.MethodGet,
+					http.MethodHead,
+				}),
+			),
+		},
+	)
+
+	allowedRoles = map[string]*Role{
+		"healthChecker": healthChecker,
+		"root": newRole(
+			0,
+			"full access to docker API",
+			[]*AllowPath{
+				newAllowPath(
+					regexp.MustCompile(".+"),
+					[]*regexp.Regexp{
+						regexp.MustCompile(".+"),
+					},
+				),
 			},
 		),
-	}),
+	}
+
+}
+
+func RolesDescriptions() []string {
+	type roleDescElem struct {
+		name  string
+		order int
+		desc  string
+	}
+
+	list := make([]roleDescElem, 0, len(allowedRoles))
+
+	for name, r := range allowedRoles {
+		list = append(list, roleDescElem{
+			name:  name,
+			order: r.Order,
+			desc:  r.Description,
+		})
+	}
+
+	slices.SortFunc(list, func(i, j roleDescElem) int {
+		return i.order - j.order
+	})
+
+	res := make([]string, 0, len(list))
+	for _, d := range list {
+		res = append(res, fmt.Sprintf(
+			"%s - %s", d.name, d.desc,
+		))
+	}
+
+	return res
 }
 
 func IsAllow(user *User, u *url.URL, method string) (string, error) {

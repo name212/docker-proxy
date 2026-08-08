@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	flag "github.com/spf13/pflag"
 
@@ -17,10 +18,14 @@ func usage() {
 
 For use docker-proxy for docker-cli you should:
   Pass env DOCKER_HOST with address to proxy (see unixSocketPath/bindAddress params)
+    If you use unixSocketPath, DOCKER_HOST should contains prefix unix:// like
+      unix:///run/docker-proxy.socket
+    If you use bindAddress, DOCKER_HOST should contains prefix tcp:// like
+      tcp://127.0.0.1:8081
   Pass env DOCKER_CUSTOM_HEADERS with X-Auth-Token header. Header value is user token from usersConfigPath
 Example:
   export DOCKER_CUSTOM_HEADERS="X-Auth-Token=EXAMPLE-T0Ken-1111"
-  export DOCKER_HOST="from unixSocketPath/bindAddress params"
+  export DOCKER_HOST="from unixSocketPath/bindAddress params with required proto prefix"
   docker image ls
 `)
 }
@@ -32,11 +37,16 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 
 	flag.Usage = usage
 
+	rolesList := proxy.RolesDescriptions()
+	rolesSeparator := "	    - "
+	rolesListStr := strings.Join(rolesList, "\n"+rolesSeparator)
+	rolesListStr = fmt.Sprintf("%s%s", rolesSeparator, rolesListStr)
+
 	serverConfigPath := flag.StringP(
 		"proxy-config-path",
 		"c",
 		"",
-		`YAML proxy config. Another server options will skip if passed
+		fmt.Sprintf(`YAML proxy config. Another server options will skip if passed
   Format:
     unixSocketPath: path to create unix-socket for handle requests. If passed bindAddress should not set
     bindAddress: address to bind proxy. If passed unixSocketPath should not set
@@ -48,7 +58,7 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 	  - name: name or description of user
 	  - token: token for auth user (token should be len >= 16)
 	  - roles: list of available roles:
-	    - admin - full access to docker API
+%s
 	logLevel: level of logger, default DEBUG
 	  if passed via config some logs can be printed with debug level before full init
 	  Can be:
@@ -61,7 +71,7 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 	   Can be:
 	   - text
 	   - json
-`)
+`, rolesListStr))
 
 	appConfig := &Config{}
 	argsAppConfig := appConfig
