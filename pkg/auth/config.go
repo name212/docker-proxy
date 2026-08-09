@@ -22,7 +22,7 @@ type DefaultRolesConsumer interface {
 }
 
 type CustomRole struct {
-	*roles.Role
+	*roles.Role `yaml:",inline"`
 
 	InheritRoles []string `yaml:"inheritRoles"`
 }
@@ -60,7 +60,7 @@ func (u *UsersConfig) ExtractCustomRoles(ctx context.Context, consumer DefaultRo
 		inherits ustrings.Set
 	}
 
-	rolesList := make([]*roleToPrepare, len(u.CustomRoles))
+	rolesList := make([]*roleToPrepare, 0, len(u.CustomRoles))
 
 	inheritsOneByOne := make(map[string]ustrings.Set)
 
@@ -148,11 +148,11 @@ func (u *UsersConfig) ExtractCustomRoles(ctx context.Context, consumer DefaultRo
 
 	slices.SortStableFunc(rolesList, func(i, j *roleToPrepare) int {
 		if j.inherits.Has(i.name) {
-			return 1
+			return -1
 		}
 
 		if i.inherits.Has(j.name) {
-			return -1
+			return 1
 		}
 
 		if i.role != nil && j.role != nil {

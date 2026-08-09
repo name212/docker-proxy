@@ -1,3 +1,4 @@
+## List of users to allow access to API
 users:
    ## user name or description
    ## should be unique for all users in list 
@@ -7,11 +8,13 @@ users:
   ## Should be minimum 16 symbols
   ## When we use docker cli you should pass this
   ## token in header X-Auth-Token via DOCKER_CUSTOM_HEADERS env like:
-  ##  export DOCKER_CUSTOM_HEADERS="X-Auth-Token=EXAMPLE-T0Ken-1111"
-  ##  export DOCKER_HOST="path-to-docker-proxy-unix-socket-or-docker-proxy-address"
-  ##  docker image ls 
+  ##   export DOCKER_CUSTOM_HEADERS="X-Auth-Token=EXAMPLE-T0Ken-1111"
+  ##   export DOCKER_HOST="path-to-docker-proxy-unix-socket-or-docker-proxy-address"
+  ##   docker image ls 
   token: "EXAMPLE-T0Ken-1111"
-  ## roles for user. See ./docker-proxy -h for list of roles
+  
+  ## roles for user. See ./docker-proxy -h for list of roles default roles
+  ## Also you can use roles from customRoles map
   roles: 
   - "root"
 
@@ -19,3 +22,43 @@ users:
   token: "EXAMPLE-T0Ken-2222"
   roles:
   - "healthChecker"
+
+## If you need extend roles list, you can use customRoles map
+# customRoles:
+#   ## Key name in customRoles is role name
+#   volumesManager:
+#     ## List of roles names to apply (inherit) to current role
+#     ##   Can be default role or another roles from customRoles
+#     ##   Warning! Cyclic roles deps not allowed and validated!
+#     ##   Warning! docker cli use ping request before call target API
+#     ##     For available running request, please add default healthChecker role
+#     inheritRoles:
+#     - healthChecker
+    
+#     ## order role index
+#     ##   Proxy sorts roles by this index and check path
+#     ##   by allowed path sequentially over sorted roles
+#     order: 50
+    
+#     ## Human-readable string for describe role
+#     description: "All access to volumes API"
+
+#     ## List of regular objects of expression for check path with method
+#     ##   Proxy will check path sequentially over this list
+#     allowPaths:
+#       ## Regexp to check passed path
+#       ##   Warning! docker API uses API-version as first path part 
+#       ##     like /v1.55/volumes
+#       ##     Proxy drop version path part and you are using regexp without 
+#       ##     version part
+#     - pathRegexp: "/volumes.*"
+#       ## List of regexps to allow methods
+#       ##   For allow all methods use (?i)^.+$ regexp
+#       ##   For list of methods can use:
+#       ##     list of strings
+#       ##       - HEAD
+#       ##       - GET
+#       ##     or one regexp, like `(?i)` - modificator do case-insensitive check
+#       ##       - (?i)^(HEAD|GET)$
+#       allowMethodsRegexps:
+#       - "(?i)^.+$"
