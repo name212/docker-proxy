@@ -3,7 +3,7 @@ package proxy
 import (
 	"net/http"
 
-	"github.com/name212/docker-proxy/internal/utils/rand"
+	"github.com/name212/docker-proxy/internal/utils/strings"
 	"github.com/name212/docker-proxy/internal/utils/request"
 )
 
@@ -21,7 +21,7 @@ func (p *Proxy) getAddRequestIDMiddleware() func(next http.Handler) http.Handler
 				request.AddStringToRequestCtx(
 					r,
 					requestIDKey,
-					rand.String(16),
+					strings.RandString(16),
 				),
 			)
 		})

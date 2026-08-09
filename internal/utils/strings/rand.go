@@ -1,4 +1,4 @@
-package rand
+package strings
 
 import (
 	mathrand "math/rand"
@@ -7,7 +7,7 @@ import (
 
 var lettersRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 
-func String(n int) string {
+func RandString(n int) string {
 	randomizer := getRand()
 
 	b := make([]rune, n)
