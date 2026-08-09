@@ -10,8 +10,8 @@ import (
 
 	"github.com/name212/govalue"
 
-	"github.com/name212/docker-proxy/internal/utils/pool"
-	"github.com/name212/docker-proxy/internal/utils/request"
+	"github.com/name212/docker-proxy/pkg/utils/pool"
+	"github.com/name212/docker-proxy/pkg/utils/request"
 )
 
 type (

@@ -8,9 +8,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/name212/docker-proxy/internal/utils/errors"
-	"github.com/name212/docker-proxy/internal/utils/re"
-	ustrings "github.com/name212/docker-proxy/internal/utils/strings"
+	"github.com/name212/docker-proxy/pkg/utils/errors"
+	"github.com/name212/docker-proxy/pkg/utils/re"
+	ustrings "github.com/name212/docker-proxy/pkg/utils/strings"
 )
 
 var (

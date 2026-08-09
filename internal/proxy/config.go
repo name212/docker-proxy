@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/name212/docker-proxy/internal/utils/errors"
-	ustrings "github.com/name212/docker-proxy/internal/utils/strings"
+	"github.com/name212/docker-proxy/pkg/utils/errors"
+	ustrings "github.com/name212/docker-proxy/pkg/utils/strings"
 )
 
 type CustomRole struct {
