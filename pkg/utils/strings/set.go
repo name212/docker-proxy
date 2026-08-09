@@ -29,6 +29,17 @@ func NewSetFromSlice(s []string) Set {
 	return r
 }
 
+func NewSetFromSliceStructs[T any](s []T, consumer func(T) string) Set {
+	r := make(Set, len(s))
+
+	for _, o := range s {
+		k := consumer(o)
+		r.Add(k)
+	}
+
+	return r
+}
+
 func NewSetFromMap[T any](s map[string]T) Set {
 	r := make(Set, len(s))
 

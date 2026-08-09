@@ -1,4 +1,4 @@
-package app
+package permissions
 
 import (
 	"fmt"
@@ -8,10 +8,16 @@ import (
 	"strings"
 )
 
-
-var trueVars = []string{"true", "1"} 
+var (
+	AllowSkipEnv = "false"
+	trueVars     = []string{"true", "1"}
+)
 
 func isCheckPermissions() bool {
+	if AllowSkipEnv != "true" {
+		return true
+	}
+
 	skipEnvVal := os.Getenv("SKIP_CHECK_PERMISSIONS")
 	skipEnvVal = strings.ToLower(skipEnvVal)
 

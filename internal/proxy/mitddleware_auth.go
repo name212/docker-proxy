@@ -5,17 +5,18 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/name212/docker-proxy/pkg/auth"
+	"github.com/name212/docker-proxy/pkg/auth/users"
 	"github.com/name212/docker-proxy/pkg/utils/request"
 )
 
 const (
-	authTokenHeader = "X-Auth-Token"
-	requestUserNameKey     = "user_name"
+	authTokenHeader    = "X-Auth-Token"
+	requestUserNameKey = "user_name"
 )
 
 var (
-	emptyTokenErrMsg   = fmt.Sprintf("token header %s not passed or empty", authTokenHeader)
-	userNotFoundErrMsg = "user not found by passed token"
+	emptyTokenErrMsg = fmt.Sprintf("token header %s not passed or empty", authTokenHeader)
 )
 
 func getUserNameForRequest(r *http.Request) string {
@@ -31,28 +32,22 @@ func (p *Proxy) getAuthMiddleware() func(next http.Handler) http.Handler {
 				return
 			}
 
-			user, ok := p.cfg.Users[Token(token)]
-			if !ok {
-				writeNotAuthorizedErr(w, r, userNotFoundErrMsg, p.logger)
-				return
-			}
-
-			userName := user.Name
-
-			r = request.AddStringToRequestCtx(r, requestUserNameKey, userName)
-
-			allowBy, err := IsAllow(user, r.URL, r.Method)
+			allowRes, err := p.cfg.Authorizer.Allow(
+				r.Context(),
+				users.Token(token),
+				r.URL,
+				r.Method,
+			)
 
 			if err != nil {
-				if errors.Is(err, UnauthorizedErr) {
-					errMsg := fmt.Sprintf("user '%s' not authorized for request", userName)
+				if errors.Is(err, auth.ErrUnauthorized) {
+					errMsg := fmt.Sprintf("not authorized for request: %s", err.Error())
 					writeNotAuthorizedErr(w, r, errMsg, p.logger)
 					return
 				}
 
 				errMsg := fmt.Sprintf(
-					"got unexpected error while checking allow for user '%s': '%s'",
-					userName,
+					"got unexpected error while checking allow: %s",
 					err.Error(),
 				)
 
@@ -61,13 +56,14 @@ func (p *Proxy) getAuthMiddleware() func(next http.Handler) http.Handler {
 			}
 
 			r.Header.Del(authTokenHeader)
+			r = request.AddStringToRequestCtx(r, requestUserNameKey, allowRes.User)
 
 			p.logger.Request(
 				r,
 				InfoCtx,
 				"allow request for user",
 				// user name will get from ctx
-				p.logger.StringArg("allow_by", allowBy),
+				p.logger.StringArg("allow_by", allowRes.String()),
 			)
 
 			next.ServeHTTP(w, r)
@@ -81,6 +77,6 @@ func writeNotAuthorizedErr(w http.ResponseWriter, r *http.Request, msg string, l
 	w.WriteHeader(http.StatusUnauthorized)
 
 	if _, err := w.Write([]byte(msg)); err != nil {
-		logger.Error("cannot write unauthorized response", UnauthorizedErr, r)
+		logger.Error("cannot write unauthorized response", auth.ErrUnauthorized, r)
 	}
 }

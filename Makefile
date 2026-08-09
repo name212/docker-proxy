@@ -5,9 +5,14 @@ export GO_TARGET=./cmd
 
 TEST_TMP_DIR = $(CURDIR)/.tmp
 
+define BUILD_VARIABLES_TEST_ENABLE_SKIP_PERM
+github.com/name212/docker-proxy/pkg/utils/permissions.AllowSkipEnv=true
+endef
+
 .tmp:
 	@mkdir -p "$(TEST_TMP_DIR)"
 
+test/build: export GO_BUILD_VARIABLES = ${BUILD_VARIABLES_TEST_ENABLE_SKIP_PERM}
 test/build: go/build/current
 
 test/run/proxy: export SKIP_CHECK_PERMISSIONS = true

@@ -133,6 +133,7 @@ func (p *Proxy) Start(ctx context.Context) error {
 		"proxy server":   p.server,
 		"docker client":  p.client,
 		"logger":         p.logger,
+		"authorizer":     p.cfg.Authorizer,
 	}
 
 	var initErrs []string

@@ -8,7 +8,9 @@ import (
 
 	flag "github.com/spf13/pflag"
 
+	"github.com/name212/docker-proxy/internal/auth"
 	"github.com/name212/docker-proxy/internal/proxy"
+	"github.com/name212/docker-proxy/pkg/utils/permissions"
 )
 
 func usage() {
@@ -36,7 +38,7 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 
 	flag.Usage = usage
 
-	rolesList := proxy.RolesDescriptions()
+	rolesList := auth.RolesDescriptor.RolesDescriptions()
 	rolesSeparator := "	    - "
 	rolesListStr := strings.Join(rolesList, "\n"+rolesSeparator)
 	rolesListStr = fmt.Sprintf("%s%s", rolesSeparator, rolesListStr)
@@ -85,7 +87,7 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 
 	flag.Parse()
 
-	if err := IsRunAsRoot(); err != nil {
+	if err := permissions.IsRunAsRoot(); err != nil {
 		return nil, err
 	}
 
@@ -117,5 +119,5 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 		return nil, err
 	}
 
-	return GetProxyConfig(appConfig)
+	return GetProxyConfig(ctx, appConfig)
 }
