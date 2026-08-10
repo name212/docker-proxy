@@ -2,11 +2,10 @@ package proxy
 
 import (
 	"github.com/name212/govalue"
-	
+
 	"github.com/name212/docker-proxy/pkg/auth"
 	"github.com/name212/docker-proxy/pkg/utils/errors"
 )
-
 
 type Config struct {
 	UnixSocketPath string

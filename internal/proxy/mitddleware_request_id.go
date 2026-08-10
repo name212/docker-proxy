@@ -3,8 +3,8 @@ package proxy
 import (
 	"net/http"
 
-	"github.com/name212/docker-proxy/pkg/utils/strings"
 	"github.com/name212/docker-proxy/pkg/utils/request"
+	"github.com/name212/docker-proxy/pkg/utils/strings"
 )
 
 const requestIDKey = "proxy_request_id"

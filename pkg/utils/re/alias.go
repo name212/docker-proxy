@@ -18,7 +18,7 @@ func (r *Regexp) UnmarshalText(text []byte) error {
 	return nil
 }
 
-func (r *Regexp) Clone() *Regexp { 
+func (r *Regexp) Clone() *Regexp {
 	if r == nil {
 		panic("cannot clone nil Regexp")
 	}
