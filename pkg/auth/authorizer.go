@@ -169,7 +169,7 @@ func (a *Authorizer) Allow(ctx context.Context, token users.Token, u *url.URL, m
 	return nil, errForUser(userName, "%w", ErrUnauthorized)
 }
 
-func errForUser(userName string, f string, args...any) error {
+func errForUser(userName string, f string, args... any) error {
 	uMsg := fmt.Sprintf("auth for user '%s': ", userName)
 
 	return fmt.Errorf(uMsg + f, args...)

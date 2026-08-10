@@ -152,9 +152,7 @@ func (p *Proxy) Start(ctx context.Context) error {
 
 	p.logger.SetServerCtx(ctx)
 
-	if err := p.initRoutes(ctx); err != nil {
-		return p.shutdown("cannot init routes: %w", err)
-	}
+	p.initRoutes(ctx)
 
 	go func() {
 		<-ctx.Done()

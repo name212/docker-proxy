@@ -36,10 +36,8 @@ func (p *AllowPath) Validate() error {
 
 	if p.Re == nil {
 		errs = append(errs, "pathRegexp is not passed")
-	} else {
-		if p.Re.String() == "" {
-			errs = append(errs, "pathRegexp is empty")
-		}
+	} else if p.Re.String() == "" {
+		errs = append(errs, "pathRegexp is empty")
 	}
 
 	if len(p.AllowMethodsRe) == 0 {

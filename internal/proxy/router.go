@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func (p *Proxy) initRoutes(ctx context.Context) error {
+func (p *Proxy) initRoutes(ctx context.Context) {
 	p.router.Use(
 		p.getAddRequestIDMiddleware(),
 	)
@@ -39,6 +39,4 @@ func (p *Proxy) initRoutes(ctx context.Context) error {
 	p.router.NotFound(func(w http.ResponseWriter, r *http.Request) {
 		writeInternalServerErrorResponse("docker-proxy: router not handle request", w, r, p.logger)
 	})
-
-	return nil
 }

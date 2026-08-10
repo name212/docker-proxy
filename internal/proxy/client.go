@@ -148,17 +148,17 @@ func (c *DockerHTTPClient) send(ctx context.Context, r *http.Request) (*http.Res
 		return nil, c.noCloseResponse, c.requestErr(r, "got nil http client from pool")
 	}
 
-	oldUrl := r.URL
+	oldURL := r.URL
 	oldRequestURI := r.RequestURI
 	defer func() {
 		c.clientsPool.Put(cl)
 
-		r.URL = oldUrl
+		r.URL = oldURL
 		r.RequestURI = oldRequestURI
 	}()
 
 	r.RequestURI = ""
-	r.URL = c.urlPreparator(oldUrl)
+	r.URL = c.urlPreparator(oldURL)
 
 	c.logger.Request(r, DebugCtx, "send request to docker")
 
@@ -184,7 +184,7 @@ func (c *DockerHTTPClient) send(ctx context.Context, r *http.Request) (*http.Res
 
 func (c *DockerHTTPClient) requestErr(r *http.Request, f string, args ...any) error {
 	err := fmt.Sprintf("request %s via %s error: ", request.RequestStr(r), c.dockerServer)
-	err = err + fmt.Sprintf(f, args...)
+	err += fmt.Sprintf(f, args...)
 	return fmt.Errorf("%s", err)
 }
 

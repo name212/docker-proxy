@@ -38,11 +38,15 @@ func (l *Logger) Request(r *http.Request, lFunc loggerFuncCtx, msg string, args 
 }
 
 func (l *Logger) Response(r *http.Response, lFunc loggerFuncCtx, msg string, args ...any) {
-	all := append(
-		args,
+	defaults := []any{
 		slog.String("status", r.Status),
 		slog.Int("status_code", r.StatusCode),
-	)
+	}
+
+	all := make([]any, 0, len(defaults) + len(args))
+	
+	all = append(all, args...)
+	
 	lFunc(l.serverCtx, msg, l.getLogArgs(r.Request, all)...)
 }
 
@@ -68,7 +72,7 @@ func (l *Logger) Error(msg string, err error, r ...*http.Request) {
 }
 
 func (l *Logger) getLogArgs(r *http.Request, args []any) []any {
-	res := []any{
+	defaults := []any{
 		slog.String("method", r.Method),
 		slog.String("path", r.URL.Path),
 		slog.String("full_url", r.URL.String()),
@@ -77,5 +81,8 @@ func (l *Logger) getLogArgs(r *http.Request, args []any) []any {
 		slog.String(requestUserNameKey, getUserNameForRequest(r)),
 	}
 
+	res := make([]any, 0, len(defaults) + len(args))
+	res = append(res, defaults...) 
+	
 	return append(res, args...)
 }

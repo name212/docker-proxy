@@ -9,7 +9,6 @@ import (
 	"github.com/name212/docker-proxy/pkg/auth/roles"
 	"github.com/name212/docker-proxy/pkg/auth/users"
 	"github.com/name212/docker-proxy/pkg/utils/errors"
-	"github.com/name212/docker-proxy/pkg/utils/strings"
 	ustrings "github.com/name212/docker-proxy/pkg/utils/strings"
 )
 
@@ -49,7 +48,7 @@ func (u *UsersConfig) ExtractCustomRoles(ctx context.Context, consumer DefaultRo
 		return nil, fmt.Errorf("cannot get default roles: %w", err)
 	}
 
-	defRoles := strings.NewSetFromMap(allRolesMap)
+	defRoles := ustrings.NewSetFromMap(allRolesMap)
 	allRolesList := ustrings.NewSet(defRoles)
 
 	var errs []string
