@@ -86,7 +86,7 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 	flag.StringVar(&appConfig.DockerAddress, "docker-address", DefaultDockerUNIXSocket, "same dockerAddress in proxy config")
 	flag.StringVar(&appConfig.UsersConfigPath, "server-users-config-path", "", "same usersConfigPath in proxy config")
 	flag.StringVar(&logConf.level, "log-level", defaultLogLevel, "same logLevel in proxy config")
-	flag.StringVar(&appConfig.LogFormat, "log-format", defaultFormatJSON, "same logFormat in proxy config")
+	flag.StringVar(&logConf.format, "log-format", defaultFormatJSON, "same logFormat in proxy config")
 
 	flag.Parse()
 
