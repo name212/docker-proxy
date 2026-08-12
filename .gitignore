@@ -32,11 +32,12 @@ go.work.sum
 .vscode/
 
 # makefile-go
-bin/
+.bin/
 .build/
 .release/
-tmp-go-tests/
+.tmp-go-tests/
 *.tst.res
+
 .test.conf.yaml
 .test.users.yaml
 .tmp/
