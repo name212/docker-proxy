@@ -10,7 +10,7 @@ Group=root
 WorkingDirectory=/tmp
 ExecStartPre=+/usr/bin/mkdir -p /run/docker-proxy
 ExecStartPre=+/usr/bin/chmod 755 /run/docker-proxy
-ExecStart=/usr/local/bin/docker-proxy /etc/docker-proxy/app.conf.yaml
+ExecStart=/usr/local/bin/docker-proxy -c /etc/docker-proxy/app.conf.yaml
 Restart=always
 RestartSec=40
 
