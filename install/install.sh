@@ -257,9 +257,12 @@ function main() {
     if ! ask_user "Do you prepare users file users.conf.yaml?"; then
         exit_with_err "Disallow continue without prepare user"
     fi
-    
+
     pre_systemd
     copy_execs
     prepare_files
     post_systemd
 }
+
+main
+exit $?
