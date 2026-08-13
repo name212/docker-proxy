@@ -97,4 +97,24 @@ release/local: export RELEASE_NAME = docker-proxy-local
 release/local: export ADDITIONAL_ARTIFACTS_DIR = $(CURDIR)/install
 release/local: clean/release go/test release/build common/release ## Prepare local release artifact
 
-.PHONY: test/build test/run/proxy test/run/docker test/clean release/build release/local
+release/local/deploy/amd64: ## Copy linux/amd64 tar release to remote host to /home/$REMOTE_USER/
+	@##~ REMOTE_USER=NAME - remote user name
+	@##~ REMOTE_IP=IP - remote IP to copy
+	@${INCLUDE_ECHO} \
+	if [ -z "$$REMOTE_USER" ]; then \
+		exit_with_err "REMOTE_USER not passed"; \
+	fi; \
+	if [ -z "$$REMOTE_IP" ]; then \
+		exit_with_err "REMOTE_IP not passed"; \
+	fi; \
+	release_file="$(CURDIR)/.release/docker-proxy-local/docker-proxy-linux-amd64.tar.gz"; \
+	if [ ! -f "$$release_file" ]; then \
+		exit_with_err "Release file '$$release_file' not found or not file"; \
+	fi; \
+	scp "$$release_file" "$${REMOTE_USER}@$${REMOTE_IP}:/home/$${REMOTE_USER}/"
+
+release/local/build-and-deploy/amd64: release/local release/local/deploy/amd64 ## Build and deploy linux/amd64 release to remote
+	@##~ REMOTE_USER=NAME - remote user name
+	@##~ REMOTE_IP=IP - remote IP to copy
+
+.PHONY: test/build test/run/proxy test/run/docker test/clean release/build release/local release/local/deploy/amd64 release/local/build-and-deploy/amd64
