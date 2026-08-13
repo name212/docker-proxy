@@ -12,10 +12,10 @@ users:
   ##   export DOCKER_HOST="path-to-docker-proxy-unix-socket-or-docker-proxy-address"
   ##   docker image ls 
   token: ""
-  
+
   ## roles for user. See ./docker-proxy -h for list of roles default roles
   ## Also you can use roles from customRoles map
-  roles: 
+  roles:
   - "root"
 
 - name: "Checker"
@@ -34,12 +34,12 @@ users:
 #     ##     For available running request, please add default healthChecker role
 #     inheritRoles:
 #     - healthChecker
-    
+
 #     ## order role index
 #     ##   Proxy sorts roles by this index and check path
 #     ##   by allowed path sequentially over sorted roles
 #     order: 50
-    
+
 #     ## Human-readable string for describe role
 #     description: "All access to volumes API"
 
