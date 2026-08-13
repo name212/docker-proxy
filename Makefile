@@ -97,7 +97,7 @@ release/local: export RELEASE_NAME = docker-proxy-local
 release/local: export ADDITIONAL_ARTIFACTS_DIR = $(CURDIR)/install
 release/local: clean/release go/test release/build common/release ## Prepare local release artifact
 
-# rm -fv /home/ubuntu/docker-proxy-linux-amd64.tar.gz && rm -fv /root/docker-proxy-linux-amd64.tar.gz && rm -rvf /root/docker-proxy
+# rm -fv /home/ubuntu/docker-proxy-linux-amd64.tar.gz && rm -fv /root/docker-proxy-linux-amd64.tar.gz && rm -rvf /root/docker-proxy && cd /root
 # cp /home/ubuntu/docker-proxy-linux-amd64.tar.gz /root/ && cd /root && mkdir -p ./docker-proxy && tar -xvf ./docker-proxy-linux-amd64.tar.gz -C ./docker-proxy && cd ./docker-proxy
 release/local/deploy/amd64: ## Copy linux/amd64 tar release to remote host to /home/$REMOTE_USER/
 	@##~ REMOTE_USER=NAME - remote user name
