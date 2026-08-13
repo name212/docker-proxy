@@ -20,7 +20,7 @@ WorkingDirectory=/tmp
 ExecStart=/usr/local/bin/docker-proxy -c /etc/docker-proxy/app.conf.yaml
 
 Restart=always
-RestartSec=30
+RestartSec=15
 
 [Install]
 WantedBy=multi-user.target
