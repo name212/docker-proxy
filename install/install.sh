@@ -239,12 +239,14 @@ function prepare_files() {
         echo_info "Got dir '$dir_to_prepare' to prepare"
         echo_info "Create dir '$dir_to_prepare'"
 
-        if ! ask_user "Create dir '$dir_to_prepare'?"; then
-            exit_with_err "Disallow create dir '$dir_to_prepare'"
-        fi
+        if [ ! -d "$dir_to_prepare" ]; then
+            if ! ask_user "Create dir '$dir_to_prepare'?"; then
+                exit_with_err "Disallow create dir '$dir_to_prepare'"
+            fi
 
-        if ! mkdir -p "$dir_to_prepare"; then
-            exit_with_err "Cannot create dir '$dir_to_prepare'"
+            if ! mkdir -p "$dir_to_prepare"; then
+                exit_with_err "Cannot create dir '$dir_to_prepare'"
+            fi
         fi
 
         if [[ "$dir_to_prepare" != "/etc/systemd/system" ]]; then
