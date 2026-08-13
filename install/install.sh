@@ -223,7 +223,7 @@ function prepare_files() {
     while IFS= read -r -d '' prepare_file; do
         local trimmed_file="${prepare_file#"$WORKING_DIR"}"
         files_to_prepare["$prepare_file"]="$trimmed_file"
-    done < <(find "$WORKING_DIR" -type f -mindepth 2 -print0)
+    done < <(find "$WORKING_DIR" -mindepth 2 -type f -print0)
 
     if [[ "${#files_to_prepare[@]}" == "0" ]]; then
         exit_with_err "files_to_prepare is empty"
