@@ -11,8 +11,9 @@ import (
 
 	flag "github.com/spf13/pflag"
 
-	"github.com/name212/docker-proxy/internal/auth"
+	initauth "github.com/name212/docker-proxy/internal/auth"
 	"github.com/name212/docker-proxy/internal/proxy"
+	"github.com/name212/docker-proxy/pkg/auth"
 	"github.com/name212/docker-proxy/pkg/utils/permissions"
 )
 
@@ -34,14 +35,14 @@ Example:
 `)
 }
 
-func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
+func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, *auth.Authorizer, error) {
 	if err := setLogger(&loggerConfig{}); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	flag.Usage = usage
 
-	rolesList := auth.RolesDescriptor.RolesDescriptions()
+	rolesList := initauth.RolesDescriptor.RolesDescriptions()
 	rolesSeparator := "	    - "
 	rolesListStr := strings.Join(rolesList, "\n"+rolesSeparator)
 	rolesListStr = fmt.Sprintf("%s%s", rolesSeparator, rolesListStr)
@@ -56,6 +57,7 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
     bindAddress: address to bind proxy. If passed unixSocketPath should not set
 	dockerAddress: address or unix-socket path to docker server.
 	  By default: /run/docker.sock
+	pidFile: if passed, write proxy pid to file
     usersConfigPath: path to users config file. Required. Should have owner root:root and 600 permission
 	Format:
 	  users: list of users
@@ -81,6 +83,7 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 	argsAppConfig := appConfig
 	logConf := &loggerConfig{}
 
+	flag.StringVar(&appConfig.PIDFIle, "server-pid-file", "", "same pidFile in proxy config")
 	flag.StringVar(&appConfig.UnixSocketPath, "server-unix-socket-path", "", "same unixSocketPath in proxy config")
 	flag.StringVar(&appConfig.BindAddress, "server-bind-address", "", "same bindAddress in proxy config")
 	flag.StringVar(&appConfig.DockerAddress, "docker-address", DefaultDockerUNIXSocket, "same dockerAddress in proxy config")
@@ -91,14 +94,14 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 	flag.Parse()
 
 	if err := permissions.IsRunAsRoot(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if serverConfigPath != nil && *serverConfigPath != "" {
 		var err error
 		appConfig, err = ReadAppConfigFromFile(ctx, *serverConfigPath)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		logLevel := appConfig.LogLevel
@@ -119,7 +122,11 @@ func GetProxyConfigFromArgs(ctx context.Context) (*proxy.Config, error) {
 	}
 
 	if err := initLogger(logConf); err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	if err := writePIDFile(appConfig.PIDFIle); err != nil {
+		return nil, nil, err
 	}
 
 	return GetProxyConfig(ctx, appConfig)

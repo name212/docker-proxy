@@ -16,10 +16,13 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/name212/govalue"
+
+	"github.com/name212/docker-proxy/pkg/auth"
 )
 
 type Proxy struct {
-	cfg *Config
+	cfg        *Config
+	authorizer *auth.Authorizer
 
 	startedAddr string
 	router      chi.Router
@@ -35,7 +38,7 @@ type Proxy struct {
 	client *DockerHTTPClient
 }
 
-func NewProxy(cfg *Config) (*Proxy, error) {
+func NewProxy(cfg *Config, authorizer *auth.Authorizer) (*Proxy, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -44,6 +47,7 @@ func NewProxy(cfg *Config) (*Proxy, error) {
 		cfg:               cfg,
 		logger:            newLogger(cfg.DockerServer),
 		postCloseListener: func(logger *Logger) {},
+		authorizer:        authorizer,
 	}
 
 	var startListener func() error
@@ -136,7 +140,7 @@ func (p *Proxy) Start(ctx context.Context) error {
 		"proxy server":   p.server,
 		"docker client":  p.client,
 		"logger":         p.logger,
-		"authorizer":     p.cfg.Authorizer,
+		"authorizer":     p.authorizer,
 	}
 
 	var initErrs []string
