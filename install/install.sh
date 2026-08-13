@@ -242,11 +242,14 @@ function prepare_files() {
         if ! ask_user "Create dir '$dir_to_prepare'?"; then
             exit_with_err "Disallow create dir '$dir_to_prepare'"
         fi
+
         if ! mkdir -p "$dir_to_prepare"; then
             exit_with_err "Cannot create dir '$dir_to_prepare'"
         fi
 
-        change_permissions "$dir_to_prepare" "700"
+        if [[ "$dir_to_prepare" != "/etc/systemd/system" ]]; then
+            change_permissions "$dir_to_prepare" "700"
+        fi
     done
 
     echo_info "Prepare configuration files..."
@@ -274,6 +277,10 @@ function prepare_files() {
         if [[ "$should_copy" == "true" ]]; then
             if ! ask_user "Copy '$src_f_to_prepare' to '$dest_file'?"; then
                 exit_with_err "Disallow copy to '$dest_file'"
+            fi
+
+            if ! cp "$src_f_to_prepare" "$dest_file"; then
+                exit_with_err "Cannot copy to '$src_f_to_prepare' to '$dest_file'"
             fi
         fi
         change_permissions "$dest_file" "600"
