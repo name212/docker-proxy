@@ -19,8 +19,13 @@ WorkingDirectory=/tmp
 
 ExecStart=/usr/local/bin/docker-proxy -c /etc/docker-proxy/app.conf.yaml
 
+ExecStartPost=/bin/bash -c 'systemctl show -p MainPID --value %n > /run/docker-proxy/docker-proxy.pid'
+
 Restart=always
-RestartSec=15
+RestartSec=5
+
+TimeoutStartSec=15
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target
