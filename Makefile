@@ -13,10 +13,10 @@ endef
 	@mkdir -p "$(TEST_TMP_DIR)"
 
 test/build: export GO_BUILD_VARIABLES = ${BUILD_VARIABLES_TEST_ENABLE_SKIP_PERM}
-test/build: go/build/current
+test/build: go/build/current ## Build test proxy binary
 
 test/run/proxy: export SKIP_CHECK_PERMISSIONS = true
-test/run/proxy: test/clean clean/build test/build .tmp
+test/run/proxy: test/clean clean/build test/build .tmp ## Run test proxy locally
 	@${INCLUDE_BUILD_OUT_NAME} \
 	bin_name=""; \
 	if ! bin_name="$$(build_out_name)"; then \
@@ -88,5 +88,13 @@ test/run/docker: check/installed/docker ## Run docker cli cmd via proxy
 	export DOCKER_CUSTOM_HEADERS="X-Auth-Token=$$token"; \
 	$$RUN_CMD	
 
-test/clean:
+test/clean: ## Clean temp test directory
 	@rm -rfv "$(TEST_TMP_DIR)"
+
+release/build: go/build/linux/all ## Build release binaries
+
+release/local: export RELEASE_NAME = docker-proxy-local
+release/local: export ADDITIONAL_ARTIFACTS_DIR = $(CURDIR)/install
+release/local: clean/release go/test release/build common/release ## Prepare local release artifact
+
+.PHONY: test/build test/run/proxy test/run/docker test/clean release/build release/local

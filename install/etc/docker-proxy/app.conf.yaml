@@ -11,7 +11,7 @@
 ##   docker image ls
 
 ## if need create unix-socket for proxy
-unixSocketPath: /run/docker-proxy/docker-proxy.socket 
+unixSocketPath: "/run/docker-proxy/docker-proxy.socket" 
 
 ## if need bind to port
 # bindAddress: "127.0.0.1:8081"
@@ -23,7 +23,7 @@ unixSocketPath: /run/docker-proxy/docker-proxy.socket
 
 ## Users config file
 ## See ./users.conf.yaml for example
-usersConfigPath: "/etc/docker-proxy/users.yaml"
+usersConfigPath: "/etc/docker-proxy/users.conf.yaml"
 
 ## Log level of proxy
 ## Can be:
