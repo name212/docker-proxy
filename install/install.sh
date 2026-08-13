@@ -207,44 +207,77 @@ function copy_execs() {
 }
 
 function prepare_files() {
-    echo_info "Prepare directories..."
-
+    local -a dirs_to_prepare=()
     local prepare_dir=""
     while IFS= read -r -d '' prepare_dir; do
         local trimmed_dir="${prepare_dir#"$WORKING_DIR"}"
-        echo_info "Got dir '$trimmed_dir' to prepare"
-        echo_info "Create dir '$trimmed_dir'"
-        if ! ask_user "Create dir '$trimmed_dir'?"; then
-            exit_with_err "Disallow create dir '$trimmed_dir'"
-        fi
-        if ! mkdir -p "$trimmed_dir"; then
-            exit_with_err "Cannot create dir '$trimmed_dir'"
-        fi
-
-        change_permissions "$trimmed_dir" "700"
+        dirs_to_prepare+=("$trimmed_dir")
     done < <(find "$WORKING_DIR" -type d -links 2 -print0)
 
-    echo_info "Prepare configuration files..."
+    if [[ "${#dirs_to_prepare[@]}" == "0" ]]; then
+        exit_with_err "dirs_to_prepare is empty"
+    fi
 
+    local -A files_to_prepare=()
     local prepare_file=""
     while IFS= read -r -d '' prepare_file; do
         local trimmed_file="${prepare_file#"$WORKING_DIR"}"
-        echo_info "Got file '$prepare_file' to prepare"
+        files_to_prepare["$prepare_file"]="$trimmed_file"
+    done < <(find "$WORKING_DIR" -type f -mindepth 2 -print0)
+
+    if [[ "${#files_to_prepare[@]}" == "0" ]]; then
+        exit_with_err "files_to_prepare is empty"
+    fi
+
+    echo_info "Prepare directories..."
+
+    for dir_to_prepare in "${dirs_to_prepare[@]}"; do
+        if [ -z "$dir_to_prepare" ]; then
+            exit_with_err "Found empty dir to prepare"
+        fi
+
+        echo_info "Got dir '$dir_to_prepare' to prepare"
+        echo_info "Create dir '$dir_to_prepare'"
+
+        if ! ask_user "Create dir '$dir_to_prepare'?"; then
+            exit_with_err "Disallow create dir '$dir_to_prepare'"
+        fi
+        if ! mkdir -p "$dir_to_prepare"; then
+            exit_with_err "Cannot create dir '$dir_to_prepare'"
+        fi
+
+        change_permissions "$dir_to_prepare" "700"
+    done
+
+    echo_info "Prepare configuration files..."
+
+    for src_f_to_prepare in "${!files_to_prepare[@]}"; do
+        if [ -z "$src_f_to_prepare" ]; then
+            exit_with_err "Found empty source file to prepare"
+        fi
+
+        local dest_file="${files_to_prepare["$src_f_to_prepare"]}"
+
+        if [ -z "$dest_file" ]; then
+            exit_with_err "Found empty dest file to prepare"
+        fi
+
+        echo_info "Got file '$dest_file' to prepare"
         
         local should_copy="true"
-        if [ -f "$trimmed_file" ]; then
-            if [[ "$trimmed_file" == *.conf.yaml ]]; then
-                echo_warn "Found exists proxy conf file '$trimmed_file' Skip copy"
+        if [ -f "$dest_file" ]; then
+            if [[ "$dest_file" == *.conf.yaml ]]; then
+                echo_warn "Found exists proxy conf file '$dest_file' Skip copy"
                 should_copy=""
             fi
         fi
         if [[ "$should_copy" == "true" ]]; then
-            if ! ask_user "Copy '$prepare_file' to '$trimmed_file'?"; then
-                exit_with_err "Disallow copy to '$trimmed_file'"
+            if ! ask_user "Copy '$src_f_to_prepare' to '$dest_file'?"; then
+                exit_with_err "Disallow copy to '$dest_file'"
             fi
         fi
-        change_permissions "$trimmed_file" "600"
-    done < <(find "$WORKING_DIR" -type f -mindepth 2 -print0)
+        change_permissions "$dest_file" "600"
+    done
 
     local systemd_file="/etc/systemd/system/${CONST_SYSTEMD_SERVICE_NAME}"
 
