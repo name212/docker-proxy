@@ -28,13 +28,13 @@ func run() error {
 	)
 	defer stop()
 
-	proxyConf, err := app.GetProxyConfigFromArgs(ctx)
+	proxyConf, authorizer, err := app.GetProxyConfigFromArgs(ctx)
 	if err != nil {
 		slog.Error("cannot get proxy config", slog.String("err", err.Error()))
 		return err
 	}
 
-	proxyServer, err := proxy.NewProxy(proxyConf)
+	proxyServer, err := proxy.NewProxy(proxyConf, authorizer)
 	if err != nil {
 		slog.Error("cannot init proxy", slog.String("err", err.Error()))
 		return err

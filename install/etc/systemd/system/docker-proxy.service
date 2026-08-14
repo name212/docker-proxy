@@ -1,0 +1,27 @@
+[Unit]
+Description=Docker proxy with auth
+
+Requires=network.target docker.service
+After=network.target docker.service
+
+[Service]
+Type=simple
+
+User=root
+Group=root
+
+RuntimeDirectory=docker-proxy
+RuntimeDirectoryMode=0755
+
+WorkingDirectory=/tmp
+
+ExecStart=/usr/local/bin/docker-proxy -c /etc/docker-proxy/app.conf.yaml
+
+Restart=always
+RestartSec=5
+
+TimeoutStartSec=15
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

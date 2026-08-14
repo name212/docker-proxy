@@ -25,6 +25,7 @@ type Config struct {
 	BindAddress     string `yaml:"bindAddress"`
 	UsersConfigPath string `yaml:"usersConfigPath"`
 	DockerAddress   string `yaml:"dockerAddress"`
+	PIDFIle         string `yaml:"pidFile"`
 
 	LogLevel  string `yaml:"logLevel"`
 	LogFormat string `yaml:"logFormat"`
@@ -83,30 +84,29 @@ func ReadAppConfigFromFile(ctx context.Context, path string) (*Config, error) {
 	return ReadAppConfig(f)
 }
 
-func GetProxyConfig(ctx context.Context, appConfig *Config) (*proxy.Config, error) {
+func GetProxyConfig(ctx context.Context, appConfig *Config) (*proxy.Config, *auth.Authorizer, error) {
 	if err := appConfig.prepareAndValidate(); err != nil {
-		return nil, fmt.Errorf("cannot validate app proxy config: %w", err)
+		return nil, nil, fmt.Errorf("cannot validate app proxy config: %w", err)
 	}
 
 	usersCfgContent, err := os.ReadFile(appConfig.UsersConfigPath)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read users config '%s': %w", appConfig.UsersConfigPath, err)
+		return nil, nil, fmt.Errorf("cannot read users config '%s': %w", appConfig.UsersConfigPath, err)
 	}
 
 	usersCfg := auth.UsersConfig{}
 	if err := yaml.Unmarshal(usersCfgContent, &usersCfg); err != nil {
-		return nil, fmt.Errorf("cannot unmarshal users config '%s': %w", appConfig.UsersConfigPath, err)
+		return nil, nil, fmt.Errorf("cannot unmarshal users config '%s': %w", appConfig.UsersConfigPath, err)
 	}
 
 	authorizer, err := initauth.CreateAuthorizer(ctx, &usersCfg)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create authorizer: %w", err)
+		return nil, nil, fmt.Errorf("cannot create authorizer: %w", err)
 	}
 
 	return &proxy.Config{
 		DockerServer:   appConfig.DockerAddress,
 		UnixSocketPath: appConfig.UnixSocketPath,
 		BindAddress:    appConfig.BindAddress,
-		Authorizer:     authorizer,
-	}, nil
+	}, authorizer, nil
 }

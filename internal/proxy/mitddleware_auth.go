@@ -35,7 +35,7 @@ func (p *Proxy) getAuthMiddleware() func(next http.Handler) http.Handler {
 				return
 			}
 
-			allowRes, err := p.cfg.Authorizer.Allow(
+			allowRes, err := p.authorizer.Allow(
 				r.Context(),
 				users.Token(token),
 				r.URL,
