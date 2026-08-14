@@ -113,10 +113,10 @@ function extract_proxy_address() {
             echo_err "Cannot extract proxy address from '$app_conf'"
             return 1
         else
-            proxy_address="tcp://$$proxy_address"
+            proxy_address="tcp://$proxy_address"
         fi
     else
-        proxy_address="unix://$$proxy_address"
+        proxy_address="unix://$proxy_address"
     fi
 
     if [ -z "$proxy_address" ]; then
@@ -160,7 +160,7 @@ function write_alias_file() {
     local proxy_address="$3"
     local token="$4"
 
-    local content="alias docker='DOCKER_HOST=\"$proxy_address\" DOCKER_CUSTOM_HEADERS=\"X-Auth-Token=$token\" docker"
+    local content="alias docker='DOCKER_HOST=\"$proxy_address\" DOCKER_CUSTOM_HEADERS=\"X-Auth-Token=$token\" docker'"
 
     local alias_file="${user_home}/.docker_bash_alias"
 
@@ -200,12 +200,12 @@ function write_use_alias_file_to_rc() {
         return 1
     fi
 
-    if grep "source $alias_file"; then
+    if grep -q "source $alias_file" "$rc_file"; then
         echo_info "Alias file already write to '$rc_file'"
         return 0
     fi
 
-        local content=""
+    local content=""
     content=$(cat <<EOF
 
 
@@ -220,7 +220,6 @@ EOF
     echo "$content" >> "$rc_file"
 }
 
-
 function main() {
     local yq_r="${YQ_BIN:-}"
 
@@ -229,7 +228,7 @@ function main() {
             exit_with_err_and_usage "yq bin passed via YQ_BIN env not found or not executable"
         fi
     else
-        if ! command -c "yq" > /dev/null; then
+        if ! command -v "yq" > /dev/null; then
             exit_with_err_and_usage "yq bin is not installed or not passed via YQ_BIN env"
         fi
         yq_r="yq"

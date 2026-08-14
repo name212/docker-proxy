@@ -5,15 +5,13 @@ Requires=network.target docker.service
 After=network.target docker.service
 
 [Service]
-Type=forking
+Type=simple
 
 User=root
 Group=root
 
 RuntimeDirectory=docker-proxy
 RuntimeDirectoryMode=0755
-
-PIDFile=/run/docker-proxy/docker-proxy.pid
 
 WorkingDirectory=/tmp
 

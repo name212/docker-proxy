@@ -188,16 +188,16 @@ function copy_execs() {
 
     change_permissions "$exec_dest" "755"
 
-    echo_info "Copy docker-proxy-prepare-user exec..."
+    echo_info "Copy proxy-docker-prepare-user exec..."
 
-    local prepare_user_src="${WORKING_DIR}/docker-proxy-prepare-user.sh"
-    local prepare_user_dest="/usr/local/bin/docker-proxy-prepare-user"
+    local prepare_user_src="${WORKING_DIR}/proxy-docker-prepare-user.sh"
+    local prepare_user_dest="/usr/local/bin/proxy-docker-prepare-user"
 
      if [ ! -f "$prepare_user_src" ]; then
-        exit_with_err "Source docker-proxy-prepare-user exec not found or not file"
+        exit_with_err "Source proxy-docker-prepare-user exec not found or not file"
     fi
 
-    echo_info "Copy docker-proxy-prepare-user exec from '$prepare_user_src' to '$prepare_user_dest'"
+    echo_info "Copy proxy-docker-prepare-user exec from '$prepare_user_src' to '$prepare_user_dest'"
 
     if ! cp "$prepare_user_src" "$prepare_user_dest"; then
         exit_with_err "Cannot copy docker-proxy exec from '$exec_src' to '$exec_dest'"
