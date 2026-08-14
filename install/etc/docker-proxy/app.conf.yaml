@@ -25,9 +25,6 @@ unixSocketPath: "/run/docker-proxy/docker-proxy.socket"
 ## See ./users.conf.yaml for example
 usersConfigPath: "/etc/docker-proxy/users.conf.yaml"
 
-## Write proxy pid to file is passed
-pidFile: "/run/docker-proxy/docker-proxy.pid"
-
 ## Log level of proxy
 ## Can be:
 ## - DEBUG
