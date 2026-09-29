@@ -1,7 +1,15 @@
 include $(CURDIR)/makefile-go/include.mk.inc
 
+HELP_LIBRARIES_FIRST := true
+export HELP_LIBRARIES_FIRST
+
+HELP_LIBRARIES_OUT := $(_INC_MK_GO_ROOT_DIR)
+export HELP_LIBRARIES_OUT
+
 export PROJECT_NAME=docker-proxy
 export GO_TARGET=./cmd
+
+##@ Docker proxy
 
 TEST_TMP_DIR = $(CURDIR)/.tmp
 
